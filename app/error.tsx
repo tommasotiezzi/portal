@@ -1,10 +1,13 @@
 "use client";
-import { SUPPORT_EMAIL, buildSupportMailto } from "@/lib/support-mail";
+import { useEffect, useState } from "react";
+import { SUPPORT_EMAIL, buildSupportMailto, sessionSupportMailto } from "@/lib/support-mail";
 
 /** Error boundary del portale: qualsiasi errore di runtime in una pagina
  *  finisce qui invece che in una schermata bianca. Volutamente autonomo:
  *  niente fetch, niente Supabase — deve reggere quando il resto e' giu'. */
 export default function ErrorPage({ reset }: { error: Error; reset: () => void }) {
+  const [mailto, setMailto] = useState(buildSupportMailto());
+  useEffect(() => { sessionSupportMailto().then(setMailto).catch(() => {}); }, []);
   return (
     <main className="shell">
       <div className="center">
@@ -13,7 +16,7 @@ export default function ErrorPage({ reset }: { error: Error; reset: () => void }
           <p className="sub">
             Ci scusiamo per il disagio. Puoi riprovare, e se il problema
             continua scrivici a{" "}
-            <a href={buildSupportMailto()} style={{ color: "var(--accent)", fontWeight: 700 }}>
+            <a href={mailto} style={{ color: "var(--accent)", fontWeight: 700 }}>
               {SUPPORT_EMAIL}
             </a>
             : ti risponderemo al piu' presto.

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { SUPPORT_EMAIL, buildSupportMailto } from "@/lib/support-mail";
+import { SUPPORT_EMAIL, buildSupportMailto, sessionSupportMailto } from "@/lib/support-mail";
 
 /**
  * Banner temporaneo di fase test (solo portale utente).
@@ -22,18 +22,21 @@ export default function TestBanner() {
     } catch { /* storage bloccato: banner visibile comunque */ }
     setVisible(true);
 
-    // precompila con i dati della sessione, se l'utente e' loggato
+    // precompila dalla sessione cachata (zero rete); se manca l'ID
+    // (sessioni nate prima del fix), arricchisci dal DB best-effort
     (async () => {
-      const { data } = await supabase().auth.getUser();
-      const user = data.user;
-      if (!user) return;
-      const [{ data: profile }, { data: ids }] = await Promise.all([
-        supabase().from("profiles").select("given_name, family_name").eq("id", user.id).maybeSingle(),
-        supabase().from("app_identities").select("external_user_id").limit(1),
-      ]);
-      const name =
-        [profile?.given_name, profile?.family_name].filter(Boolean).join(" ") || "Utente";
-      setMailto(buildSupportMailto(name, ids?.[0]?.external_user_id ?? "", user.email ?? ""));
+      setMailto(await sessionSupportMailto());
+      const { data } = await supabase().auth.getSession();
+      const user = data.session?.user;
+      if (!user || user.app_metadata?.external_user_id) return;
+      const { data: ids } = await supabase()
+        .from("app_identities").select("external_user_id").limit(1);
+      if (ids?.[0]) {
+        const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+        const name =
+          [meta.given_name, meta.family_name].filter(Boolean).join(" ") || "Utente";
+        setMailto(buildSupportMailto(name, ids[0].external_user_id, user.email ?? ""));
+      }
     })();
   }, []);
 

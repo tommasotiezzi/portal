@@ -15,3 +15,25 @@ export function buildSupportMailto(name = "Utente", userId = "", email = ""): st
     `Email account: ${email || "[Scrivi qui]"}\r\n`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
+
+/** Mailto precompilato dalla SESSIONE CACHATA (localStorage): zero rete,
+ *  funziona anche con Supabase giu'. Fallback: placeholder. */
+export async function sessionSupportMailto(): Promise<string> {
+  try {
+    const { supabase } = await import("./supabase");
+    const { data } = await supabase().auth.getSession(); // lettura locale, no rete
+    const user = data.session?.user;
+    if (!user) return buildSupportMailto();
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const appMeta = (user.app_metadata ?? {}) as Record<string, unknown>;
+    const name =
+      [meta.given_name, meta.family_name].filter(Boolean).join(" ") || "Utente";
+    return buildSupportMailto(
+      name,
+      typeof appMeta.external_user_id === "string" ? appMeta.external_user_id : "",
+      user.email ?? "",
+    );
+  } catch {
+    return buildSupportMailto();
+  }
+}
