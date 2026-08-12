@@ -53,8 +53,21 @@ function TicketChat() {
 
   useEffect(() => {
     load();
-    const timer = setInterval(load, 8000); // refresh leggero: niente realtime per l'MVP
-    return () => clearInterval(timer);
+    // polling educato: attivo solo con la tab in primo piano
+    let timer: ReturnType<typeof setInterval> | null = setInterval(load, 8000);
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (timer) { clearInterval(timer); timer = null; }
+      } else if (!timer) {
+        load();
+        timer = setInterval(load, 8000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [load]);
 
   useEffect(() => {

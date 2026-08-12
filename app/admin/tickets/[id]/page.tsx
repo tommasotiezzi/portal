@@ -98,9 +98,19 @@ function TicketDetail() {
   // claim all'apertura, release all'uscita (il release e' un no-op se hai risposto)
   useEffect(() => {
     supabase().rpc("claim_ticket", { p_ticket_id: ticketId }).then(load);
-    const t = setInterval(load, 10000);
+    let t: ReturnType<typeof setInterval> | null = setInterval(load, 10000);
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (t) { clearInterval(t); t = null; }
+      } else if (!t) {
+        load();
+        t = setInterval(load, 10000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
     return () => {
-      clearInterval(t);
+      if (t) clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisibility);
       supabase().rpc("release_ticket", { p_ticket_id: ticketId });
     };
   }, [ticketId, load]);

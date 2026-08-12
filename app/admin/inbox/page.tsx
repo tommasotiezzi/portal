@@ -77,8 +77,20 @@ function Inbox() {
   useEffect(() => {
     supabase().auth.getUser().then(({ data }) => setMe(data.user?.id ?? ""));
     load();
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
+    let t: ReturnType<typeof setInterval> | null = setInterval(load, 15000);
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (t) { clearInterval(t); t = null; }
+      } else if (!t) {
+        load();
+        t = setInterval(load, 15000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      if (t) clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [load]);
 
   if (rows === null)
