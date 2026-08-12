@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { BrandProvider, DEFAULT_BRAND, type Brand } from "@/components/BrandProvider";
+import TestBanner from "@/components/TestBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        <TestBanner />
         <BrandProvider brand={brand}>{children}</BrandProvider>
       </body>
     </html>

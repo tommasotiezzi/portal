@@ -724,3 +724,35 @@ h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.02
   z-index: 50;
 }
 .theme-toggle:hover { border-color: #ff6444; color: #ff6444; }
+
+/* ============================================================
+   Banner fase test (temporaneo, solo portale utente)
+   ============================================================ */
+.test-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f5a5241a;
+  border-bottom: 1px solid #f5a52440;
+  color: #f5c169;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+}
+.test-banner button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  flex: none;
+}
+.test-banner button:hover { background: #f5a52426; }
+
+/* mai nel backoffice (strumento interno, niente avvisi utente) */
+body:has(#amia-root) .test-banner { display: none; }
+
+.test-banner a { color: inherit; font-weight: 700; text-decoration: underline; }
