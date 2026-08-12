@@ -22,6 +22,19 @@ interface Row {
   profiles: { email: string } | null;
 }
 
+/** Retention allegati (v2, via Storage API):
+ *  la RPC elenca gli scaduti, il client cancella file e poi righe. */
+async function purgeOldAttachments() {
+  const { data } = await supabase().rpc("purgeable_attachments");
+  const items = (data ?? []) as { id: string; storage_path: string }[];
+  if (items.length === 0) return;
+  const { error: rmErr } = await supabase()
+    .storage.from("attachments")
+    .remove(items.map((i) => i.storage_path));
+  if (rmErr) return; // file non cancellati -> righe intatte, riprova al giro dopo
+  await supabase().from("attachments").delete().in("id", items.map((i) => i.id));
+}
+
 /** Peso di urgenza: cosa richiede l'operatore prima. */
 const URGENCY: Record<TicketStatus, number> = {
   nuovo: 0, in_lavorazione: 1, in_attesa_cliente: 2, risolto: 3, chiuso: 4,
@@ -46,7 +59,7 @@ function Inbox() {
     await Promise.allSettled([
       supabase().rpc("release_stale_tickets"),
       supabase().rpc("close_stale_resolved"),
-      supabase().rpc("purge_old_attachments"),   // retention: allegati chiusi >30gg
+      purgeOldAttachments(),                     // retention: allegati chiusi >30gg
     ]);
     const [{ data }, { data: c }, { data: a }] = await Promise.all([
       supabase()
