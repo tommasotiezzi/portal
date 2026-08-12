@@ -645,3 +645,82 @@ h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.02
 
 /* prio dot media: blu troppo "algo", su amia grigio-ink */
 .amia .prio-dot[style*="4f8ef7"] { filter: grayscale(0.4); }
+
+
+
+/* ============================================================
+   Amia — dark mode (override del tema chiaro; classe .dark
+   applicata da sistema o dal toggle)
+   ============================================================ */
+.amia.dark {
+  --bg: #141414;
+  --surface: #1d1d1d;
+  --surface-2: #262626;
+  --border: #333333;
+  --text: #f5f5f5;
+  --muted: #9b9b9b;
+}
+.amia.dark .admin-nav a { color: #9b9b9b; }
+.amia.dark .admin-nav a.active, .amia.dark .admin-nav a:hover { color: #f5f5f5; }
+
+.amia.dark .side-card,
+.amia.dark .stat-card,
+.amia.dark .trow {
+  background: #1d1d1d;
+  border-color: #333333;
+  box-shadow: none;
+}
+.amia.dark .trow:hover { border-color: #ff6444; box-shadow: none; }
+
+.amia.dark .field,
+.amia.dark .composer textarea {
+  background: #262626;
+  border-color: #3a3a3a;
+  color: #f5f5f5;
+}
+.amia.dark .field:focus-visible { border-color: #ff6444; }
+
+.amia.dark .btn { background: #f5f5f5; color: #141414; }
+.amia.dark .btn.ghost { background: #1d1d1d; color: #f5f5f5; border-color: #3a3a3a; }
+.amia.dark .btn.ghost:hover { border-color: #f5f5f5; }
+
+.amia.dark .bubble.them { background: #262626; border-color: #333333; }
+.amia.dark .bubble.me { background: #f5f5f5; color: #141414; }
+
+.amia.dark .composer { background: linear-gradient(transparent, #141414 30%); }
+.amia.dark .composer .clip { background: #1d1d1d; border-color: #3a3a3a; color: #f5f5f5; }
+
+.amia.dark .pill { background: #262626; color: #9b9b9b; border-color: #333333; }
+.amia.dark .pill.s-nuovo, .amia.dark .pill.action { background: #ff6444; color: #ffffff; border-color: transparent; }
+.amia.dark .pill.s-in_lavorazione { background: #f5a52422; color: #f5a524; border-color: #f5a52444; }
+.amia.dark .pill.s-in_attesa_cliente { background: #262626; color: #9b9b9b; }
+.amia.dark .pill.s-risolto { background: #35d07f1f; color: #4fdc93; border-color: #35d07f33; }
+.amia.dark .pill.s-chiuso { background: #262626; color: #6f6f6f; }
+
+.amia.dark .stat-card.hot {
+  border-color: rgba(255, 100, 68, 0.45);
+  background: linear-gradient(180deg, rgba(255, 100, 68, 0.10), #1d1d1d);
+}
+.amia.dark .stat-when { color: #6f6f6f; }
+.amia.dark .bar-track { background: #2a2a2a; }
+.amia.dark .wtable th, .amia.dark .wtable td { border-color: #333333; }
+.amia.dark .hist-row { border-color: #333333; }
+.amia.dark .copy-btn { color: #6f6f6f; }
+.amia.dark .attach-grid img { border-color: #333333; }
+
+/* toggle tema */
+.theme-toggle {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 42px; height: 42px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 16px rgba(20, 20, 20, 0.12);
+  z-index: 50;
+}
+.theme-toggle:hover { border-color: #ff6444; color: #ff6444; }
