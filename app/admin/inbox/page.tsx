@@ -43,6 +43,7 @@ function Inbox() {
     await Promise.allSettled([
       supabase().rpc("release_stale_tickets"),
       supabase().rpc("close_stale_resolved"),
+      supabase().rpc("purge_old_attachments"),   // retention: allegati chiusi >30gg
     ]);
     const [{ data }, { data: c }] = await Promise.all([
       supabase()
