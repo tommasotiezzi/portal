@@ -770,3 +770,18 @@ body:has(#amia-root) .test-banner { display: none; }
 .theme-toggle {
   bottom: calc(22px + env(safe-area-inset-bottom, 0px));
 }
+
+/* ============================================================
+   iOS in-app browser (SFSafariViewController): la toolbar
+   flottante copre il fondo pagina e safe-area-inset-bottom
+   NON la include (riporta solo l'home indicator). Rialzo extra
+   solo su iOS/WebKit: -webkit-touch-callout esiste solo li'.
+   ============================================================ */
+@supports (-webkit-touch-callout: none) {
+  .composer {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+  .fab {
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
