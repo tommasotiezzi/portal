@@ -55,9 +55,17 @@ function NewTicketFlow() {
       .select("id")
       .limit(1)
       .then(({ data }) => setHasIdentity((data ?? []).length > 0));
-    supabase()
-      .rpc("get_app_categories", { p_app_slug: brand.slug })
-      .then(({ data }) => {
+    (async () => {
+      // regola: l'app di provenienza (handoff) vince sull'hostname.
+      // Chi entra dal fallback email non ha provenienza -> app del portale.
+      const { data: u } = await supabase().auth.getUser();
+      const fromHandoff =
+        (u.user?.app_metadata as Record<string, unknown> | undefined)?.last_app_slug;
+      const effectiveSlug =
+        typeof fromHandoff === "string" && fromHandoff ? fromHandoff : brand.slug;
+      supabase()
+        .rpc("get_app_categories", { p_app_slug: effectiveSlug })
+        .then(({ data }) => {
         const list = (data as unknown as Category[]) ?? [];
         setCats(list);
         // preselezione da openFaqReport
@@ -67,6 +75,7 @@ function NewTicketFlow() {
           if (c) pickCategory(c, list);
         }
       });
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
