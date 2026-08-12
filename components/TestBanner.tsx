@@ -13,15 +13,15 @@ const DISMISS_KEY = "support-test-banner-dismissed";
 const SUPPORT_EMAIL = "supporto@algofantacalcio.it";
 
 function buildMailto(name: string, userId: string, email: string): string {
-  const subject = `Segnalazione Problema Assistenza Algo - ${name}`;
+  // NB: testo volutamente semplice e corto — niente unicode "grassetto" o
+  // emoji: gonfiano l'URL percent-encoded e Safari iOS lo rifiuta.
+  const subject = `Segnalazione problema assistenza - ${name}`;
   const body =
-    "Buongiorno,\r\n\r\ndesidero segnalare un problema riscontrato con la nuova Assistenza di Algo Fantacalcio.\r\n\r\n" +
-    "𝗗𝗲𝘀𝗰𝗿𝗶𝘇𝗶𝗼𝗻𝗲 𝗱𝗲𝗹 𝗽𝗿𝗼𝗯𝗹𝗲𝗺𝗮 *(spiega in breve cosa è successo)*:\r\n\r\n[Inserisci qui]\r\n\r\n" +
-    "𝗔𝗹𝗹𝗲𝗴𝗮𝘁𝗶 𝘂𝘁𝗶𝗹𝗶 *(screenshot o registrazioni del problema)*:\r\n\r\n[Inserisci qui]\r\n\r\n" +
-    "𝗗𝗮𝘁𝗶 𝗮𝗰𝗰𝗼𝘂𝗻𝘁 *(necessari per l'assistenza)*:\r\n\r\n" +
-    `- 𝗜𝗗 𝘂𝘁𝗲𝗻𝘁𝗲: ${userId || "[Inserisci qui]"} \r\n` +
-    `- 𝗘𝗺𝗮𝗶𝗹 𝗮𝗰𝗰𝗼𝘂𝗻𝘁: ${email || "[Inserisci qui]"} \r\n\r\n\r\n` +
-    "📌 *Il supporto risponderà entro 72 ore dalla segnalazione.*";
+    "Buongiorno,\r\n\r\n" +
+    "ho riscontrato un problema con la nuova assistenza.\r\n\r\n" +
+    "Descrizione del problema:\r\n[Scrivi qui]\r\n\r\n" +
+    `ID utente: ${userId || "[Scrivi qui]"}\r\n` +
+    `Email account: ${email || "[Scrivi qui]"}\r\n`;
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
