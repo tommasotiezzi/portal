@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { IconMail } from "@/components/icons";
 import { useBrand } from "@/components/BrandProvider";
+import { SUPPORT_EMAIL, buildSupportMailto } from "@/lib/support-mail";
 
 /**
  * Accesso al portale.
