@@ -3,7 +3,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Protected from "@/components/Protected";
-import { supabase, Category, APP_SLUG } from "@/lib/supabase";
+import { supabase, Category } from "@/lib/supabase";
+import { useBrand } from "@/components/BrandProvider";
 import { IconClip, IconSend } from "@/components/icons";
 
 /**
@@ -30,6 +31,7 @@ function mdLite(text: string): string {
 }
 
 function NewTicketFlow() {
+  const brand = useBrand();
   const router = useRouter();
   const params = useSearchParams();
   const [cats, setCats] = useState<Category[]>([]);
@@ -54,7 +56,7 @@ function NewTicketFlow() {
       .limit(1)
       .then(({ data }) => setHasIdentity((data ?? []).length > 0));
     supabase()
-      .rpc("get_app_categories", { p_app_slug: APP_SLUG })
+      .rpc("get_app_categories", { p_app_slug: brand.slug })
       .then(({ data }) => {
         const list = (data as unknown as Category[]) ?? [];
         setCats(list);
@@ -170,9 +172,11 @@ function NewTicketFlow() {
         .single();
       if (tErr) throw tErr;
 
-      const { error: mErr } = await supabase()
+      const { data: firstMsg, error: mErr } = await supabase()
         .from("ticket_messages")
-        .insert({ ticket_id: ticket!.id, author_id: uid, author_role: "customer", body: desc.trim() });
+        .insert({ ticket_id: ticket!.id, author_id: uid, author_role: "customer", body: desc.trim() })
+        .select("id")
+        .single();
       if (mErr) throw mErr;
 
       // allegati (max 2, gia' filtrati)
@@ -184,6 +188,7 @@ function NewTicketFlow() {
         if (!upErr) {
           await supabase().from("attachments").insert({
             ticket_id: ticket!.id,
+            message_id: firstMsg!.id,
             storage_path: path,
             file_name: f.name,
             mime_type: f.type,
@@ -294,12 +299,13 @@ function NewTicketFlow() {
 }
 
 export default function NewTicketPage() {
+  const brand = useBrand();
   return (
     <Protected>
       <main className="shell">
         <header className="topbar">
           <Link href="/tickets" className="back" aria-label="Indietro">←</Link>
-          <img src="/loghi/Logo-orizzontale-bianco.svg" alt="Algo Fantacalcio" />
+          <img src={brand.logoUrl ?? "/loghi/Logo-orizzontale-bianco.svg"} alt={brand.name} />
         </header>
         <Suspense>
           <NewTicketFlow />

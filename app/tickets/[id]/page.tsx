@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Protected from "@/components/Protected";
 import { IconClip, IconSend } from "@/components/icons";
 import { supabase, Message, Ticket, STATUS_LABEL, STATUS_NEEDS_USER } from "@/lib/supabase";
+import { useBrand } from "@/components/BrandProvider";
 
 interface Attach { id: string; message_id: number | null; url: string; file_name: string; }
 
@@ -204,12 +205,13 @@ function TicketChat() {
 }
 
 export default function TicketPage() {
+  const brand = useBrand();
   return (
     <Protected>
       <main className="shell">
         <header className="topbar">
           <Link href="/tickets" className="back" aria-label="Indietro">←</Link>
-          <img src="/loghi/Logo-orizzontale-bianco.svg" alt="Algo Fantacalcio" />
+          <img src={brand.logoUrl ?? "/loghi/Logo-orizzontale-bianco.svg"} alt={brand.name} />
         </header>
         <TicketChat />
       </main>

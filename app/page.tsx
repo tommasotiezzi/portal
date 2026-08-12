@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { IconMail } from "@/components/icons";
+import { useBrand } from "@/components/BrandProvider";
 
 /**
  * Accesso al portale.
@@ -13,6 +14,7 @@ import { IconMail } from "@/components/icons";
  *   il form non rivela mai se un'email e' registrata (no enumeration).
  */
 export default function AccessPage() {
+  const brand = useBrand();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -52,7 +54,7 @@ export default function AccessPage() {
   return (
     <main className="shell">
       <header className="topbar">
-        <img src="/loghi/Logo-orizzontale-bianco.svg" alt="Algo Fantacalcio" />
+        <img src={brand.logoUrl ?? "/loghi/Logo-orizzontale-bianco.svg"} alt={brand.name} />
       </header>
 
       <div className="auth-hero">
@@ -71,7 +73,7 @@ export default function AccessPage() {
           </div>
         ) : (
           <div className="auth-card">
-            <h1>Assistenza Algo</h1>
+            <h1>Assistenza {brand.name}</h1>
             <p className="sub">
               Inserisci l&apos;email del tuo account: ti inviamo un link di
               accesso, senza password. Dal link entri direttamente nelle tue

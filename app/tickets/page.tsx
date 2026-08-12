@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Protected from "@/components/Protected";
 import { supabase, Ticket, STATUS_LABEL, STATUS_NEEDS_USER } from "@/lib/supabase";
+import { useBrand } from "@/components/BrandProvider";
 
 function TicketCard({ t }: { t: Ticket }) {
   const closed = t.status === "chiuso";
@@ -76,11 +77,12 @@ function TicketList() {
 }
 
 export default function TicketsPage() {
+  const brand = useBrand();
   return (
     <Protected>
       <main className="shell">
         <header className="topbar">
-          <img src="/loghi/Logo-orizzontale-bianco.svg" alt="Algo Fantacalcio" />
+          <img src={brand.logoUrl ?? "/loghi/Logo-orizzontale-bianco.svg"} alt={brand.name} />
         </header>
         <h1>Le tue richieste</h1>
         <TicketList />

@@ -66,4 +66,5 @@ export const STATUS_NEEDS_USER: Record<TicketStatus, boolean> = {
   chiuso: false,
 };
 
-export const APP_SLUG = "algo";
+// Lo slug dell'app e' risolto a runtime per hostname (vedi BrandProvider);
+// NEXT_PUBLIC_APP_SLUG resta come fallback per localhost/dev nel root layout.

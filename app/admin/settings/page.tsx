@@ -4,7 +4,7 @@ import Link from "next/link";
 import AdminGuard, { useAdminBase } from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 
-interface App { id: string; slug: string; name: string; jwt_issuer: string | null; jwt_audiences: string[]; discord_webhook_url: string | null; }
+interface App { id: string; slug: string; name: string; jwt_issuer: string | null; jwt_audiences: string[]; discord_webhook_url: string | null; portal_host: string | null; brand_accent: string; from_email: string | null; logo_url: string | null; }
 interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; }
 
 function Settings() {
@@ -45,17 +45,36 @@ function Settings() {
   }
 
   async function createApp(form: FormData) {
+    const slug = String(form.get("slug")).toLowerCase().trim();
     const audiences = String(form.get("audiences") ?? "")
       .split(",").map((s) => s.trim()).filter(Boolean);
+
+    // logo: upload su Storage (bucket pubblico "branding") -> URL nel record
+    let logoUrl: string | null = null;
+    const logo = form.get("logo") as File | null;
+    if (logo && logo.size > 0) {
+      const ext = logo.name.split(".").pop() || "svg";
+      const path = `${slug}/logo.${ext}`;
+      const { error: upErr } = await supabase()
+        .storage.from("branding").upload(path, logo, { upsert: true, contentType: logo.type });
+      if (upErr) { flash("Errore upload logo: " + upErr.message); return; }
+      logoUrl = supabase().storage.from("branding").getPublicUrl(path).data.publicUrl;
+    }
+
     const { error } = await supabase().from("apps").insert({
       name: String(form.get("name")),
-      slug: String(form.get("slug")).toLowerCase().trim(),
+      slug,
       jwt_issuer: String(form.get("issuer")).trim() || null,
       jwt_audiences: audiences,
       discord_webhook_url: String(form.get("webhook")).trim() || null,
+      portal_host: String(form.get("portal_host")).trim().toLowerCase() || null,
+      brand_accent: String(form.get("accent") || "#35d07f"),
+      from_email: String(form.get("from_email")).trim() || null,
+      logo_url: logoUrl,
     });
     if (error) { flash("Errore: " + error.message); return; }
-    setShowNewApp(false); flash("App registrata.");
+    setShowNewApp(false);
+    flash("App registrata. Ricorda: CNAME del dominio verso Vercel + dominio nel progetto Vercel.");
     load();
   }
 
@@ -82,6 +101,17 @@ function Settings() {
           <input className="field slim" name="issuer" placeholder="JWT issuer (Cognito: https://cognito-idp.../pool-id)" />
           <input className="field slim" name="audiences" placeholder="App client ID (piu' valori: separati da virgola)" />
           <input className="field slim" name="webhook" placeholder="Discord webhook URL" />
+          <input className="field slim" name="portal_host" placeholder="Dominio portale (es. supporto.nuovaapp.it)" />
+          <input className="field slim" name="from_email" placeholder="Mittente email (vuoto = quello globale)" />
+          <label className="sub check" style={{ margin: "2px 0" }}>
+            Colore brand&nbsp;
+            <input type="color" name="accent" defaultValue="#35d07f"
+              style={{ width: 44, height: 30, border: "none", background: "none", padding: 0 }} />
+          </label>
+          <label className="sub check" style={{ margin: "2px 0" }}>
+            Logo (svg/png, fondo scuro)&nbsp;
+            <input type="file" name="logo" accept=".svg,.png,image/svg+xml,image/png" />
+          </label>
           <button className="btn slim-btn">Registra</button>
         </form>
       )}
