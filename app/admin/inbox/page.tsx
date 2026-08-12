@@ -155,7 +155,7 @@ export default function InboxPage() {
       {(role) => (
         <main className="admin-shell">
           <header className="admin-top">
-            <img src="/loghi/amia-white.svg" alt="Amia" style={{ height: 30 }} />
+            <img src="/loghi/amia-logo.svg" alt="Amia" style={{ height: 30 }} />
             <nav className="admin-nav">
               <Link className="active" href={`${base}/inbox`}>Inbox</Link>
               <Link href={`${base}/analytics`}>Analytics</Link>

@@ -536,19 +536,20 @@ h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.02
 
 
 /* ============================================================
-   Tema Amia (backoffice) — dark derivato dal brand aziendale
-   ink #141414 come canvas, corallo #FF6444 come azione,
-   gradiente firma #FFE367 -> #FF6444 -> #FF6ADE come hairline.
+   Tema Amia (backoffice) — chiaro, fedele al sito aziendale:
+   canvas bianco, ink #141414, corallo #FF6444 sulle azioni,
+   gradiente firma #FFE367 -> #FF6444 -> #FF6ADE, Manrope,
+   whitespace generoso.
    ============================================================ */
 .amia {
-  --bg: #141414;
-  --surface: #1d1d1d;
-  --surface-2: #262626;
-  --border: #333333;
-  --text: #f5f5f5;
-  --muted: #9b9b9b;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --border: #e8e8e8;
+  --text: #141414;
+  --muted: #8a8a8a;
   --accent: #ff6444;
-  --accent-ink: #2b0f08;
+  --accent-ink: #ffffff;
 
   min-height: 100dvh;
   background: var(--bg);
@@ -557,10 +558,14 @@ h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.02
   font-optical-sizing: auto;
 }
 
+/* piu' aria: il sito respira, il backoffice pure */
+.amia .admin-shell { padding: 0 28px 48px; }
+.amia .admin-top { padding: 26px 0 20px; margin-bottom: 10px; }
+.amia h1 { letter-spacing: -0.03em; font-weight: 800; }
+.amia .section-label { margin-top: 30px; }
+
 /* hairline gradiente firma sotto l'header */
-.amia .admin-top {
-  position: relative;
-}
+.amia .admin-top { position: relative; }
 .amia .admin-top::after {
   content: "";
   position: absolute;
@@ -568,28 +573,75 @@ h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.02
   height: 2px;
   background: linear-gradient(90deg, #ffe367 0%, #ff6444 50%, #ff6ade 100%);
   border-radius: 2px;
-  opacity: 0.9;
 }
 
-/* card "da gestire" in corallo */
+/* nav in stile sito: ink pieno sull'attivo */
+.amia .admin-nav a { color: #8a8a8a; }
+.amia .admin-nav a.active, .amia .admin-nav a:hover { color: #141414; }
+
+/* card bianche, bordo leggero, ombra soffice come le value-card del sito */
+.amia .side-card,
+.amia .stat-card,
+.amia .trow {
+  background: #ffffff;
+  border: 1px solid #ececec;
+  box-shadow: 0 1px 3px rgba(20, 20, 20, 0.04);
+}
+.amia .trow { padding: 15px 18px; margin-bottom: 10px; }
+.amia .trow:hover { border-color: #ff6444; box-shadow: 0 2px 10px rgba(255, 100, 68, 0.10); }
+.amia .side-card { padding: 18px 20px; }
+.amia .stat-card { padding: 18px 20px; gap: 4px; }
+
+/* input e select su fondo chiaro */
+.amia .field {
+  background: #ffffff;
+  border-color: #dedede;
+  color: #141414;
+}
+.amia .field:focus-visible { border-color: #ff6444; }
+
+/* bottoni: primario ink (come i CTA del sito), ghost bianco bordato */
+.amia .btn { background: #141414; color: #ffffff; }
+.amia .btn.ghost { background: #ffffff; color: #141414; border: 1px solid #dedede; }
+.amia .btn.ghost:hover { border-color: #141414; }
+
+/* bolle chat: assistenza chiara, operatore ink */
+.amia .bubble.them { background: #f5f5f5; border-color: #e8e8e8; }
+.amia .bubble.me { background: #141414; color: #ffffff; }
+
+/* composer */
+.amia .composer { background: linear-gradient(transparent, #ffffff 30%); }
+.amia .composer textarea { background: #ffffff; border-color: #dedede; color: #141414; }
+.amia .composer .send { background: #ff6444; color: #ffffff; }
+.amia .composer .clip { background: #ffffff; border-color: #dedede; color: #141414; }
+
+/* pill di stato su fondo chiaro */
+.amia .pill { background: #f5f5f5; color: #8a8a8a; border-color: #e8e8e8; }
+.amia .pill.s-nuovo { background: #ff6444; color: #ffffff; border-color: transparent; }
+.amia .pill.s-in_lavorazione { background: #fff4e0; color: #b97a10; border-color: #f5d9a8; }
+.amia .pill.s-in_attesa_cliente { background: #f5f5f5; color: #8a8a8a; }
+.amia .pill.s-risolto { background: #e7f8ef; color: #1e9e5f; border-color: #bfe9d2; }
+.amia .pill.s-chiuso { background: #f5f5f5; color: #b0b0b0; }
+.amia .pill.action { background: #ff6444; color: #ffffff; border-color: transparent; }
+
+/* card "da gestire" */
 .amia .stat-card.hot {
-  border-color: rgba(255, 100, 68, 0.45);
-  background: linear-gradient(180deg, rgba(255, 100, 68, 0.10), var(--surface));
+  border-color: rgba(255, 100, 68, 0.5);
+  background: linear-gradient(180deg, rgba(255, 100, 68, 0.06), #ffffff);
 }
-.amia .stat-card.hot b { color: var(--accent); }
+.amia .stat-card.hot b { color: #ff6444; }
+.amia .stat-when { color: #b0b0b0; }
 
-/* trend in corallo */
-.amia .trend-bar {
-  background: linear-gradient(180deg, #ff6444, rgba(255, 100, 68, 0.5));
-}
+/* analytics */
+.amia .trend-bar { background: linear-gradient(180deg, #ff6444, #ff9b86); }
+.amia .bar-fill { background: #ff6444; }
+.amia .bar-track { background: #f0f0f0; }
+.amia .wtable th, .amia .wtable td { border-color: #ececec; }
 
-/* barre analytics in corallo */
-.amia .bar-fill { background: var(--accent); }
+/* dettaglio: link storico e copy */
+.amia .hist-row { border-color: #ececec; }
+.amia .copy-btn { color: #b0b0b0; }
+.amia .copy-btn:hover { color: #ff6444; }
 
-/* stato "in lavorazione": ambra funziona anche qui; "risolto" resta verde
-   semantico su entrambi i temi */
-.amia .pill.s-risolto {
-  background: #35d07f1f;
-  color: #4fdc93;
-  border-color: #35d07f33;
-}
+/* prio dot media: blu troppo "algo", su amia grigio-ink */
+.amia .prio-dot[style*="4f8ef7"] { filter: grayscale(0.4); }
