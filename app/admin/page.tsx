@@ -46,6 +46,7 @@ export default function AdminLogin() {
     <main className="shell">
       <div className="auth-hero">
         <div className="auth-card">
+          <img src="/loghi/amia-white.svg" alt="Amia" style={{ height: 34, marginBottom: 18, display: "block" }} />
           <h1>Backoffice</h1>
           <p className="sub">Area riservata all&apos;assistenza.</p>
           <form onSubmit={login}>

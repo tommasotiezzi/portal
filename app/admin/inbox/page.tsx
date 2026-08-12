@@ -1,153 +1,159 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AdminGuard, {
-  ADMIN_STATUS_LABEL, PRIORITY_COLOR, Priority, timeAgo, useAdminBase,
-} from "@/components/AdminGuard";
-import { supabase, TicketStatus } from "@/lib/supabase";
+import AdminGuard, { useAdminBase } from "@/components/AdminGuard";
+import { supabase } from "@/lib/supabase";
 
-interface Row {
-  id: number;
-  title: string;
-  status: TicketStatus;
-  priority: Priority;
-  created_at: string;
-  updated_at: string;
-  category_id: string | null;
-  locked_by: string | null;
-  categories: { name: string } | null;
-  apps: { name: string; slug: string } | null;
-  profiles: { email: string } | null;
+interface Slice { name: string; n: number; }
+interface Week {
+  week: string;
+  opened: number;
+  closed: number;
+  resolved: number;
+  by_category: Slice[];
+}
+interface Stats {
+  open_now: number;
+  need_action: number;
+  created_7d: number;
+  created_30d: number;
+  avg_first_response_min: number | null;
+  avg_resolution_h: number | null;
+  by_category: Slice[];
+  by_app: Slice[];
 }
 
-/** Peso di urgenza: cosa richiede l'operatore prima. */
-const URGENCY: Record<TicketStatus, number> = {
-  nuovo: 0, in_lavorazione: 1, in_attesa_cliente: 2, risolto: 3, chiuso: 4,
-};
+function fmtMinutes(min: number | null): string {
+  if (min === null || isNaN(min)) return "—";
+  if (min < 60) return `${min}m`;
+  if (min < 60 * 24) return `${Math.floor(min / 60)}h ${min % 60}m`;
+  return `${Math.floor(min / 1440)}g ${Math.floor((min % 1440) / 60)}h`;
+}
 
-function Inbox() {
-  const base = useAdminBase();
-  const router = useRouter();
-  const [rows, setRows] = useState<Row[] | null>(null);
-  const [me, setMe] = useState<string>("");
-  const [showClosed, setShowClosed] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<"" | TicketStatus>("");
-  const [filterCat, setFilterCat] = useState("");
-  const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
-  const [sort, setSort] = useState<"urgenza" | "aggiornati" | "creati">("urgenza");
-  const [q, setQ] = useState("");
+function Bars({ title, data }: { title: string; data: Slice[] }) {
+  const max = Math.max(...data.map((d) => d.n), 1);
+  return (
+    <div className="side-card">
+      <p className="side-title">{title}</p>
+      {data.length === 0 && <p className="sub" style={{ margin: 0 }}>Nessun dato.</p>}
+      {data.map((d) => (
+        <div key={d.name} className="bar-row">
+          <span className="bar-label">{d.name}</span>
+          <span className="bar-track">
+            <span className="bar-fill" style={{ width: `${(d.n / max) * 100}%` }} />
+          </span>
+          <span className="bar-n">{d.n}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-  const load = useCallback(async () => {
-    // manutenzioni senza cron: lock orfani + auto-chiusura 7gg
-    await Promise.allSettled([
-      supabase().rpc("release_stale_tickets"),
-      supabase().rpc("close_stale_resolved"),
-    ]);
-    const [{ data }, { data: c }] = await Promise.all([
-      supabase()
-        .from("tickets")
-        .select("id, title, status, priority, created_at, updated_at, locked_by, category_id, categories(name), apps(name, slug), profiles!tickets_user_id_fkey(email)")
-        .order("updated_at", { ascending: false }),
-      supabase().from("categories").select("id, name").order("name"),
-    ]);
-    setRows((data as unknown as Row[]) ?? []);
-    setCats((c as { id: string; name: string }[]) ?? []);
-  }, []);
+function Analytics() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [weeks, setWeeks] = useState<Week[]>([]);
 
   useEffect(() => {
-    supabase().auth.getUser().then(({ data }) => setMe(data.user?.id ?? ""));
-    load();
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
-  }, [load]);
+    supabase().rpc("get_support_stats").then(({ data }) => setStats(data as Stats));
+    supabase().rpc("get_weekly_stats", { p_weeks: 8 })
+      .then(({ data }) => setWeeks((data as Week[]) ?? []));
+  }, []);
 
-  if (rows === null)
-    return <div className="center sub">Carico l&apos;inbox…</div>;
-
-  const needle = q.trim().toLowerCase();
-  const visible = rows
-    .filter((r) => (showClosed ? true : r.status !== "chiuso"))
-    .filter((r) => (filterStatus ? r.status === filterStatus : true))
-    .filter((r) => (filterCat ? r.category_id === filterCat : true))
-    .filter((r) =>
-      needle
-        ? r.title.toLowerCase().includes(needle) ||
-          (r.profiles?.email ?? "").toLowerCase().includes(needle) ||
-          `#${r.id}`.includes(needle) || String(r.id) === needle
-        : true)
-    .sort((a, b) => {
-      if (sort === "aggiornati") return +new Date(b.updated_at) - +new Date(a.updated_at);
-      if (sort === "creati") return +new Date(b.created_at) - +new Date(a.created_at);
-      return URGENCY[a.status] - URGENCY[b.status] ||
-        +new Date(b.updated_at) - +new Date(a.updated_at);
-    });
-
-  const needAction = rows.filter((r) => URGENCY[r.status] <= 1).length;
+  if (!stats) return <div className="center sub">Calcolo le statistiche…</div>;
 
   return (
     <>
-      <div className="admin-filters">
-        <span className="sub" style={{ margin: 0 }}>
-          <b style={{ color: "var(--text)" }}>{needAction}</b> da gestire
-        </span>
-        <input className="field slim" style={{ minWidth: 180 }}
-          placeholder="Cerca: titolo, email, #id…"
-          value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="field slim" value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as TicketStatus | "")}>
-          <option value="">Tutti gli stati</option>
-          {Object.entries(ADMIN_STATUS_LABEL).map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
-        <select className="field slim" value={filterCat}
-          onChange={(e) => setFilterCat(e.target.value)}>
-          <option value="">Tutte le categorie</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select className="field slim" value={sort}
-          onChange={(e) => setSort(e.target.value as typeof sort)}>
-          <option value="urgenza">Ordina: urgenza</option>
-          <option value="aggiornati">Ordina: aggiornati di recente</option>
-          <option value="creati">Ordina: creati di recente</option>
-        </select>
-        <label className="sub check" style={{ margin: 0 }}>
-          <input type="checkbox" checked={showClosed}
-            onChange={(e) => setShowClosed(e.target.checked)} /> mostra chiusi
-        </label>
+      <div className="stat-grid">
+        <div className={`stat-card${stats.need_action > 0 ? " hot" : ""}`}>
+          <span className="stat-when">adesso</span>
+          <b>{stats.need_action}</b><span>da gestire</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-when">adesso</span>
+          <b>{stats.open_now}</b><span>richieste aperte</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-when">ultimi 7 giorni</span>
+          <b>{stats.created_7d}</b><span>nuove richieste</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-when">ultimi 30 giorni</span>
+          <b>{stats.created_30d}</b><span>nuove richieste</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-when">ultimi 30 giorni</span>
+          <b>{fmtMinutes(stats.avg_first_response_min)}</b><span>prima risposta media</span>
+        </div>
+        <div className="stat-card">
+          <span className="stat-when">ultimi 30 giorni</span>
+          <b>{stats.avg_resolution_h === null ? "—" : fmtMinutes(stats.avg_resolution_h * 60)}</b>
+          <span>risoluzione media</span>
+        </div>
       </div>
 
-      {visible.length === 0 && (
-        <div className="center sub" style={{ padding: 60 }}>Inbox vuota. 🟢 Tutto gestito.</div>
+      {weeks.length > 0 && (
+        <div className="side-card">
+          <p className="side-title">Aperture per settimana · ultime {weeks.length} settimane ISO</p>
+          <div className="trend">
+            {[...weeks].reverse().map((w) => {
+              const max = Math.max(...weeks.map((x) => x.opened), 1);
+              return (
+                <div key={w.week} className="trend-col" title={`${w.week}: ${w.opened} aperti`}>
+                  <span className="trend-n">{w.opened > 0 ? w.opened : ""}</span>
+                  <span className="trend-bar"
+                    style={{ height: `${Math.max((w.opened / max) * 100, 3)}%` }} />
+                  <span className="trend-label">{w.week.slice(5)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {visible.map((r) => (
-        <Link key={r.id} href={`${base}/tickets/${r.id}`}
-          className={`trow${r.status === "chiuso" ? " closed" : ""}`}>
-          <span className="prio-dot" style={{ background: PRIORITY_COLOR[r.priority] }}
-            title={`Priorità ${r.priority}`} />
-          <span className="tid">#{r.id}</span>
-          <span className="tmain">
-            <span className="ttitle">{r.title}</span>
-            <span className="tmeta">
-              {r.profiles?.email ?? "—"}
-              {r.categories?.name ? ` · ${r.categories.name}` : ""}
-              {r.apps?.name ? ` · ${r.apps.name}` : ""}
-            </span>
-          </span>
-          {r.locked_by && r.locked_by !== me && (
-            <span className="pill" title="Un altro operatore lo sta guardando">in visione</span>
-          )}
-          <span className={`pill s-${r.status}`}>{ADMIN_STATUS_LABEL[r.status]}</span>
-          <span className="ttime">{timeAgo(r.updated_at)}</span>
-        </Link>
-      ))}
+      <div className="analytics-grid">
+        <Bars title="Per categoria · ultimi 30 giorni" data={stats.by_category} />
+        {stats.by_app.length > 1 && (
+          <Bars title="Per app · ultimi 30 giorni" data={stats.by_app} />
+        )}
+      </div>
+      <div className="side-card" style={{ marginTop: 12 }}>
+        <p className="side-title">Recap settimanale · settimane ISO</p>
+        <table className="wtable">
+          <thead>
+            <tr>
+              <th>Settimana</th><th>Aperti</th><th>Risolti</th><th>Chiusi</th>
+              <th className="wcats">Categorie (aperti)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weeks.map((w) => (
+              <tr key={w.week}>
+                <td className="wweek">{w.week}</td>
+                <td><b>{w.opened}</b></td>
+                <td>{w.resolved}</td>
+                <td>{w.closed}</td>
+                <td className="wcats">
+                  {w.by_category.length === 0
+                    ? "—"
+                    : w.by_category.slice(0, 3).map((c) => `${c.name} ×${c.n}`).join(" · ")
+                      + (w.by_category.length > 3 ? " · …" : "")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="sub">
+        Prima risposta e risoluzione sono medie sugli ultimi 30 giorni.
+        Nel recap, aperti/risolti/chiusi contano gli eventi avvenuti in quella settimana.
+      </p>
     </>
   );
 }
 
-export default function InboxPage() {
+export default function AnalyticsPage() {
   const base = useAdminBase();
   const router = useRouter();
   return (
@@ -155,10 +161,10 @@ export default function InboxPage() {
       {(role) => (
         <main className="admin-shell">
           <header className="admin-top">
-            <img src="/loghi/Logo-orizzontale-bianco.svg" alt="Algo" style={{ height: 24 }} />
+            <img src="/loghi/amia-white.svg" alt="Amia" style={{ height: 30 }} />
             <nav className="admin-nav">
-              <Link className="active" href={`${base}/inbox`}>Inbox</Link>
-              <Link href={`${base}/analytics`}>Analytics</Link>
+              <Link href={`${base}/inbox`}>Inbox</Link>
+              <Link className="active" href={`${base}/analytics`}>Analytics</Link>
               {role === "admin" && <Link href={`${base}/settings`}>Impostazioni</Link>}
               <a href="#" onClick={async (e) => {
                 e.preventDefault();
@@ -167,7 +173,7 @@ export default function InboxPage() {
               }}>Esci</a>
             </nav>
           </header>
-          <Inbox />
+          <Analytics />
         </main>
       )}
     </AdminGuard>

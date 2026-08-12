@@ -286,7 +286,7 @@ export default function AdminTicketPage() {
         <main className="admin-shell">
           <header className="admin-top">
             <Link href={`${base}/inbox`} className="back">←</Link>
-            <img src="/loghi/Logo-orizzontale-bianco.svg" alt="Algo" style={{ height: 24 }} />
+            <img src="/loghi/amia-white.svg" alt="Amia" style={{ height: 30 }} />
             <span />
           </header>
           <TicketDetail />
