@@ -1,92 +1,104 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import Protected from "@/components/Protected";
-import { supabase, Ticket, STATUS_LABEL, STATUS_NEEDS_USER } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { IconMail } from "@/components/icons";
 import { useBrand } from "@/components/BrandProvider";
+import { SUPPORT_EMAIL, buildSupportMailto } from "@/lib/support-mail";
 
-function TicketCard({ t }: { t: Ticket }) {
-  const closed = t.status === "chiuso";
-  return (
-    <Link href={`/tickets/${t.id}`} className={`ticket-card${closed ? " closed" : ""}`}>
-      <div className="row">
-        <span className="title">{t.title}</span>
-        <span className={`pill${STATUS_NEEDS_USER[t.status] ? " action" : ""}`}>
-          {STATUS_LABEL[t.status]}
-        </span>
-      </div>
-      <div className="meta">
-        #{t.id}
-        {t.categories?.name ? ` · ${t.categories.name}` : ""}
-        {" · "}
-        {new Date(t.updated_at).toLocaleDateString("it-IT", { day: "numeric", month: "short" })}
-      </div>
-    </Link>
-  );
-}
-
-function TicketList() {
-  const [tickets, setTickets] = useState<Ticket[] | null>(null);
+/**
+ * Accesso al portale.
+ * - Chi arriva dall'app (handoff) o da un magic link ha gia' la sessione
+ *   e viene mandato dritto a /tickets.
+ * - Chi arriva "a freddo" (o con link scaduto) inserisce l'email e riceve
+ *   un nuovo link. Il messaggio di conferma e' identico in ogni caso:
+ *   il form non rivela mai se un'email e' registrata (no enumeration).
+ */
+export default function AccessPage() {
+  const brand = useBrand();
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    supabase()
-      .from("tickets")
-      .select("id, title, status, created_at, updated_at, category_id, categories(name)")
-      .order("updated_at", { ascending: false })
-      .then(({ data }) => setTickets((data as unknown as Ticket[]) ?? []));
-  }, []);
+    supabase().auth.getSession().then(({ data }) => {
+      if (data.session) router.replace("/tickets");
+      else setChecking(false);
+    });
+    const { data: sub } = supabase().auth.onAuthStateChange((_e, session) => {
+      if (session) router.replace("/tickets");
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router]);
 
-  if (tickets === null)
-    return <div className="center sub">Carico le tue richieste…</div>;
+  async function sendLink(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    await supabase().auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: `${window.location.origin}/tickets` },
+    });
+    // esito volutamente identico anche in caso di errore lato server
+    setSent(true);
+    setBusy(false);
+  }
 
-  const open = tickets.filter((t) => t.status !== "chiuso");
-  const closed = tickets.filter((t) => t.status === "chiuso");
-
-  return (
-    <>
-      {tickets.length === 0 && (
-        <div className="center" style={{ paddingTop: 60 }}>
-          <div>
-            <h1>Nessuna richiesta</h1>
-            <p className="sub">
-              Hai un problema con l&apos;app? Apri una richiesta e ti
-              rispondiamo entro 72 ore lavorative (lun–sab mattina).
-            </p>
-          </div>
-        </div>
-      )}
-
-      {open.length > 0 && (
-        <>
-          <p className="section-label">Aperte</p>
-          {open.map((t) => <TicketCard key={t.id} t={t} />)}
-        </>
-      )}
-
-      {closed.length > 0 && (
-        <>
-          <p className="section-label">Chiuse</p>
-          {closed.map((t) => <TicketCard key={t.id} t={t} />)}
-        </>
-      )}
-
-      <div style={{ height: 90 }} />
-      <Link href="/tickets/new" className="fab">+ Nuova richiesta</Link>
-    </>
-  );
-}
-
-export default function TicketsPage() {
-  const brand = useBrand();
-  return (
-    <Protected>
+  if (checking)
+    return (
       <main className="shell">
-        <header className="topbar">
-          <img src={brand.logoUrl ?? "/loghi/Logo-orizzontale-bianco.svg"} alt={brand.name} />
-        </header>
-        <h1>Le tue richieste</h1>
-        <TicketList />
+        <div className="center sub">Un attimo…</div>
       </main>
-    </Protected>
+    );
+
+  return (
+    <main className="shell">
+      <header className="topbar">
+        <img src={brand.logoUrl ?? "/loghi/Logo-orizzontale-bianco.svg"} alt={brand.name} />
+      </header>
+
+      <div className="auth-hero">
+        {sent ? (
+          <div className="auth-card" style={{ textAlign: "center" }}>
+            <span className="hero-icon"><IconMail /></span>
+            <h1>Controlla la posta</h1>
+            <p className="sub">
+              Se l&apos;email &egrave; corretta, riceverai un link di accesso tra
+              pochi istanti. Controlla anche lo spam. Il link scade tra
+              un&apos;ora: se non lo usi in tempo, torna qui e richiedine un altro.
+            </p>
+            <button className="btn ghost" onClick={() => setSent(false)}>
+              Usa un&apos;altra email
+            </button>
+          </div>
+        ) : (
+          <div className="auth-card">
+            <h1>Assistenza {brand.name}</h1>
+            <p className="sub">
+              Inserisci l&apos;email del tuo account: ti inviamo un link di
+              accesso, senza password. Dal link entri direttamente nelle tue
+              richieste.
+            </p>
+            <form onSubmit={sendLink}>
+              <input
+                className="field"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="la-tua-email@esempio.it"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <div style={{ height: 12 }} />
+              <button className="btn" disabled={busy || !email.includes("@")}>
+                {busy ? "Invio…" : "Inviami il link di accesso"}
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

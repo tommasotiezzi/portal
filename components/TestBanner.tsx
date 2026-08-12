@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { SUPPORT_EMAIL, buildSupportMailto } from "@/lib/support-mail";
 
 /**
  * Banner temporaneo di fase test (solo portale utente).
@@ -10,24 +11,10 @@ import { supabase } from "@/lib/supabase";
  * A fine test: togliere <TestBanner /> dal root layout.
  */
 const DISMISS_KEY = "support-test-banner-dismissed";
-const SUPPORT_EMAIL = "supporto@algofantacalcio.it";
-
-function buildMailto(name: string, userId: string, email: string): string {
-  // NB: testo volutamente semplice e corto — niente unicode "grassetto" o
-  // emoji: gonfiano l'URL percent-encoded e Safari iOS lo rifiuta.
-  const subject = `Segnalazione problema assistenza - ${name}`;
-  const body =
-    "Buongiorno,\r\n\r\n" +
-    "ho riscontrato un problema con la nuova assistenza.\r\n\r\n" +
-    "Descrizione del problema:\r\n[Scrivi qui]\r\n\r\n" +
-    `ID utente: ${userId || "[Scrivi qui]"}\r\n` +
-    `Email account: ${email || "[Scrivi qui]"}\r\n`;
-  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
 
 export default function TestBanner() {
   const [visible, setVisible] = useState(false);
-  const [mailto, setMailto] = useState(buildMailto("Utente", "", ""));
+  const [mailto, setMailto] = useState(buildSupportMailto("Utente", "", ""));
 
   useEffect(() => {
     try {
@@ -46,7 +33,7 @@ export default function TestBanner() {
       ]);
       const name =
         [profile?.given_name, profile?.family_name].filter(Boolean).join(" ") || "Utente";
-      setMailto(buildMailto(name, ids?.[0]?.external_user_id ?? "", user.email ?? ""));
+      setMailto(buildSupportMailto(name, ids?.[0]?.external_user_id ?? "", user.email ?? ""));
     })();
   }, []);
 

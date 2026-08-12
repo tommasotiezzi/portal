@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Protected from "@/components/Protected";
 import { supabase, Category } from "@/lib/supabase";
 import { useBrand } from "@/components/BrandProvider";
+import { SUPPORT_EMAIL, buildSupportMailto } from "@/lib/support-mail";
 import { IconClip, IconSend } from "@/components/icons";
 
 /**
@@ -46,6 +47,7 @@ function NewTicketFlow() {
   const [desc, setDesc] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
+  const [sendFailed, setSendFailed] = useState(false);
   const [error, setError] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -210,6 +212,7 @@ function NewTicketFlow() {
       router.replace(`/tickets/${ticket!.id}`);
     } catch (e) {
       setError("Non sono riuscito a creare la richiesta. Riprova tra un attimo.");
+      setSendFailed(true);   // fallback massimale: appare il contatto email
       setBusy(false);
     }
   }
@@ -272,6 +275,15 @@ function NewTicketFlow() {
             <IconSend />
           </button>
         </div>
+      )}
+
+      {sendFailed && (
+        <p className="sub" style={{ textAlign: "center", margin: "0 0 8px" }}>
+          Continua a non funzionare? Scrivici a{" "}
+          <a href={buildSupportMailto()} style={{ color: "var(--accent)", fontWeight: 700 }}>
+            {SUPPORT_EMAIL}
+          </a>
+        </p>
       )}
 
       {step === "describe" && (
