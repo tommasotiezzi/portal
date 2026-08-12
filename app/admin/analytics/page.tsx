@@ -53,17 +53,34 @@ function Bars({ title, data }: { title: string; data: Slice[] }) {
 function Analytics() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [weeks, setWeeks] = useState<Week[]>([]);
+  const [appList, setAppList] = useState<{ id: string; name: string }[]>([]);
+  const [appId, setAppId] = useState("");
 
   useEffect(() => {
-    supabase().rpc("get_support_stats").then(({ data }) => setStats(data as Stats));
-    supabase().rpc("get_weekly_stats", { p_weeks: 8 })
-      .then(({ data }) => setWeeks((data as Week[]) ?? []));
+    supabase().from("apps").select("id, name").order("name")
+      .then(({ data }) => setAppList((data as { id: string; name: string }[]) ?? []));
   }, []);
 
-  if (!stats) return <div className="center sub">Calcolo le statistiche…</div>;
+  useEffect(() => {
+    setStats(null);
+    const p_app_id = appId || null;
+    supabase().rpc("get_support_stats", { p_app_id })
+      .then(({ data }) => setStats(data as Stats));
+    supabase().rpc("get_weekly_stats", { p_weeks: 8, p_app_id })
+      .then(({ data }) => setWeeks((data as Week[]) ?? []));
+  }, [appId]);
 
   return (
     <>
+      <div className="admin-filters">
+        <select className="field slim" value={appId} onChange={(e) => setAppId(e.target.value)}>
+          <option value="">Tutte le app</option>
+          {appList.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+      </div>
+
+      {!stats ? <div className="center sub">Calcolo le statistiche…</div> : (
+      <>
       <div className="stat-grid">
         <div className={`stat-card${stats.need_action > 0 ? " hot" : ""}`}>
           <span className="stat-when">adesso</span>
@@ -149,6 +166,8 @@ function Analytics() {
         Prima risposta e risoluzione sono medie sugli ultimi 30 giorni.
         Nel recap, aperti/risolti/chiusi contano gli eventi avvenuti in quella settimana.
       </p>
+      </>
+      )}
     </>
   );
 }

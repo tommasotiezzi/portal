@@ -14,6 +14,7 @@ interface Row {
   priority: Priority;
   created_at: string;
   updated_at: string;
+  app_id: string;
   category_id: string | null;
   locked_by: string | null;
   categories: { name: string } | null;
@@ -34,7 +35,9 @@ function Inbox() {
   const [showClosed, setShowClosed] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"" | TicketStatus>("");
   const [filterCat, setFilterCat] = useState("");
+  const [filterApp, setFilterApp] = useState("");
   const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
+  const [appList, setAppList] = useState<{ id: string; name: string }[]>([]);
   const [sort, setSort] = useState<"urgenza" | "aggiornati" | "creati">("urgenza");
   const [q, setQ] = useState("");
 
@@ -45,15 +48,17 @@ function Inbox() {
       supabase().rpc("close_stale_resolved"),
       supabase().rpc("purge_old_attachments"),   // retention: allegati chiusi >30gg
     ]);
-    const [{ data }, { data: c }] = await Promise.all([
+    const [{ data }, { data: c }, { data: a }] = await Promise.all([
       supabase()
         .from("tickets")
-        .select("id, title, status, priority, created_at, updated_at, locked_by, category_id, categories(name), apps(name, slug), profiles!tickets_user_id_fkey(email)")
+        .select("id, title, status, priority, created_at, updated_at, locked_by, app_id, category_id, categories(name), apps(name, slug), profiles!tickets_user_id_fkey(email)")
         .order("updated_at", { ascending: false }),
       supabase().from("categories").select("id, name").order("name"),
+      supabase().from("apps").select("id, name").order("name"),
     ]);
     setRows((data as unknown as Row[]) ?? []);
     setCats((c as { id: string; name: string }[]) ?? []);
+    setAppList((a as { id: string; name: string }[]) ?? []);
   }, []);
 
   useEffect(() => {
@@ -71,6 +76,7 @@ function Inbox() {
     .filter((r) => (showClosed ? true : r.status !== "chiuso"))
     .filter((r) => (filterStatus ? r.status === filterStatus : true))
     .filter((r) => (filterCat ? r.category_id === filterCat : true))
+    .filter((r) => (filterApp ? r.app_id === filterApp : true))
     .filter((r) =>
       needle
         ? r.title.toLowerCase().includes(needle) ||
@@ -101,6 +107,11 @@ function Inbox() {
           {Object.entries(ADMIN_STATUS_LABEL).map(([v, l]) => (
             <option key={v} value={v}>{l}</option>
           ))}
+        </select>
+        <select className="field slim" value={filterApp}
+          onChange={(e) => setFilterApp(e.target.value)}>
+          <option value="">Tutte le app</option>
+          {appList.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
         <select className="field slim" value={filterCat}
           onChange={(e) => setFilterCat(e.target.value)}>
