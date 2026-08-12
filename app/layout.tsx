@@ -13,6 +13,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#0b0e13",
+  viewportFit: "cover", // abilita env(safe-area-inset-*) su iOS
 };
 
 /** Testo scuro o chiaro sopra l'accent, in base alla luminanza. */

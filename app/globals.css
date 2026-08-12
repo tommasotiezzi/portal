@@ -756,3 +756,17 @@ h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; letter-spacing: -0.02
 body:has(#amia-root) .test-banner { display: none; }
 
 .test-banner a { color: inherit; font-weight: 700; text-decoration: underline; }
+
+/* ============================================================
+   iOS: safe area / barra inferiore del browser
+   Gli elementi ancorati in basso si alzano di conseguenza.
+   ============================================================ */
+.composer {
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+}
+.fab {
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.theme-toggle {
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+}
