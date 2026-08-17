@@ -22,7 +22,7 @@ interface Detail {
   apps: { name: string } | null;
   profiles: { email: string; given_name: string | null; family_name: string | null } | null;
 }
-interface Identity { external_user_id: string; access_status: string | null; apps: { name: string } | null; }
+interface Identity { external_user_id: string; access_status: string | null; metadata: Record<string, unknown> | null; apps: { name: string } | null; }
 interface HistoryRow { id: number; title: string; status: TicketStatus; created_at: string; }
 interface Attach { id: string; message_id: number | null; url: string; file_name: string; }
 
@@ -76,7 +76,7 @@ function TicketDetail() {
       supabase().from("attachments")
         .select("id, message_id, storage_path, file_name").eq("ticket_id", ticketId),
       supabase().from("app_identities")
-        .select("external_user_id, access_status, apps(name)").eq("profile_id", d.user_id),
+        .select("external_user_id, access_status, metadata, apps(name)").eq("profile_id", d.user_id),
       supabase().from("tickets")
         .select("id, title, status, created_at")
         .eq("user_id", d.user_id).neq("id", ticketId)
@@ -216,6 +216,12 @@ function TicketDetail() {
               <div key={k}>
                 <div className="kv"><span>ID utente ✓</span><CopyVal value={i.external_user_id} /></div>
                 {i.access_status && <div className="kv"><span>Piano</span><b>{i.access_status}</b></div>}
+                {typeof i.metadata?.app_version === "string" && (
+                  <div className="kv"><span>Versione app</span>
+                    <b>{i.metadata.app_version as string}
+                    {typeof i.metadata?.platform === "string" ? ` (${i.metadata.platform})` : ""}</b>
+                  </div>
+                )}
               </div>
             ))
           ) : (
