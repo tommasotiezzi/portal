@@ -5,7 +5,7 @@ import AdminGuard, { useAdminBase } from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 
 interface App { id: string; slug: string; name: string; jwt_issuer: string | null; jwt_audiences: string[]; discord_webhook_url: string | null; portal_host: string | null; brand_accent: string; from_email: string | null; logo_url: string | null; }
-interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; archived: boolean; }
+interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; archived: boolean; sort_order: number; }
 
 function Settings() {
   const [apps, setApps] = useState<App[]>([]);
@@ -40,13 +40,13 @@ function Settings() {
   async function saveCat(c: Cat) {
     const { error } = c.id
       ? await supabase().from("categories")
-          .update({ name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null })
+          .update({ name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null, sort_order: c.sort_order || 100 })
           .eq("id", c.id)
       : await supabase().from("categories").insert({
           app_id: appId,
           slug: c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40),
           name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null,
-          archived: false,
+          archived: false, sort_order: c.sort_order || 100,
         });
     if (error) { flash("Errore: " + error.message); return; }
     setEditing(null); flash("Salvato.");
@@ -89,7 +89,7 @@ function Settings() {
 
   const appCats = cats
     .filter((c) => c.app_id === appId)
-    .sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name));
+    .sort((a, b) => Number(a.archived) - Number(b.archived) || a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
   return (
     <>
@@ -136,7 +136,7 @@ function Settings() {
           ) : (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: c.archived ? 0.55 : 1 }}>
               <div>
-                <b>{c.name}</b>{c.archived && <span className="pill" style={{ marginLeft: 8 }}>archiviata</span>}
+                <b>{c.name}</b> <span className="sub" style={{ fontSize: 12 }}>#{c.sort_order}</span>{c.archived && <span className="pill" style={{ marginLeft: 8 }}>archiviata</span>}
                 <p className="sub" style={{ margin: "4px 0 0" }}>
                   {c.faq_md ? "FAQ ✓" : "FAQ —"} · {c.info_request_md ? "checklist ✓" : "checklist —"}
                 </p>
@@ -162,7 +162,7 @@ function Settings() {
       )}
       {!editing && (
         <button className="btn ghost slim-btn"
-          onClick={() => setEditing({ id: "", app_id: appId, slug: "", name: "", faq_md: "", info_request_md: "", archived: false })}>
+          onClick={() => setEditing({ id: "", app_id: appId, slug: "", name: "", faq_md: "", info_request_md: "", archived: false, sort_order: 100 })}>
           + Categoria
         </button>
       )}
@@ -175,8 +175,13 @@ function CatForm({ cat, onChange, onSave, onCancel }: {
 }) {
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      <input className="field slim" placeholder="Nome categoria"
-        value={cat.name} onChange={(e) => onChange({ ...cat, name: e.target.value })} />
+      <div style={{ display: "flex", gap: 8 }}>
+        <input className="field slim" style={{ flex: 1 }} placeholder="Nome categoria"
+          value={cat.name} onChange={(e) => onChange({ ...cat, name: e.target.value })} />
+        <input className="field slim" style={{ width: 90 }} type="number" title="Ordine nel funnel (10, 20, 30…)"
+          placeholder="Ordine" value={cat.sort_order || ""}
+          onChange={(e) => onChange({ ...cat, sort_order: Number(e.target.value) || 100 })} />
+      </div>
       <textarea className="field" rows={3}
         placeholder="Risposta FAQ del bot (markdown: **grassetto**) — vuoto = il bot non prova a risolvere"
         value={cat.faq_md ?? ""} onChange={(e) => onChange({ ...cat, faq_md: e.target.value })} />
