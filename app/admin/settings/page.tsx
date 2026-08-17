@@ -5,7 +5,7 @@ import AdminGuard, { useAdminBase } from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 
 interface App { id: string; slug: string; name: string; jwt_issuer: string | null; jwt_audiences: string[]; discord_webhook_url: string | null; portal_host: string | null; brand_accent: string; from_email: string | null; logo_url: string | null; }
-interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; }
+interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; archived: boolean; }
 
 function Settings() {
   const [apps, setApps] = useState<App[]>([]);
@@ -29,6 +29,14 @@ function Settings() {
 
   function flash(text: string) { setMsg(text); setTimeout(() => setMsg(""), 2500); }
 
+  async function toggleArchive(c: Cat) {
+    const { error } = await supabase()
+      .from("categories").update({ archived: !c.archived }).eq("id", c.id);
+    if (error) { flash("Errore: " + error.message); return; }
+    flash(c.archived ? "Categoria ripristinata." : "Categoria archiviata: non appare più nel portale.");
+    load();
+  }
+
   async function saveCat(c: Cat) {
     const { error } = c.id
       ? await supabase().from("categories")
@@ -38,6 +46,7 @@ function Settings() {
           app_id: appId,
           slug: c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40),
           name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null,
+          archived: false,
         });
     if (error) { flash("Errore: " + error.message); return; }
     setEditing(null); flash("Salvato.");
@@ -78,7 +87,9 @@ function Settings() {
     load();
   }
 
-  const appCats = cats.filter((c) => c.app_id === appId);
+  const appCats = cats
+    .filter((c) => c.app_id === appId)
+    .sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name));
 
   return (
     <>
@@ -123,14 +134,21 @@ function Settings() {
             <CatForm cat={editing} onChange={setEditing} onSave={() => saveCat(editing)}
               onCancel={() => setEditing(null)} />
           ) : (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, opacity: c.archived ? 0.55 : 1 }}>
               <div>
-                <b>{c.name}</b>
+                <b>{c.name}</b>{c.archived && <span className="pill" style={{ marginLeft: 8 }}>archiviata</span>}
                 <p className="sub" style={{ margin: "4px 0 0" }}>
                   {c.faq_md ? "FAQ ✓" : "FAQ —"} · {c.info_request_md ? "checklist ✓" : "checklist —"}
                 </p>
               </div>
-              <button className="btn ghost slim-btn" onClick={() => setEditing(c)}>Modifica</button>
+              <div style={{ display: "flex", gap: 8, flex: "none" }}>
+                {!c.archived && (
+                  <button className="btn ghost slim-btn" onClick={() => setEditing(c)}>Modifica</button>
+                )}
+                <button className="btn ghost slim-btn" onClick={() => toggleArchive(c)}>
+                  {c.archived ? "Ripristina" : "Archivia"}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -144,7 +162,7 @@ function Settings() {
       )}
       {!editing && (
         <button className="btn ghost slim-btn"
-          onClick={() => setEditing({ id: "", app_id: appId, slug: "", name: "", faq_md: "", info_request_md: "" })}>
+          onClick={() => setEditing({ id: "", app_id: appId, slug: "", name: "", faq_md: "", info_request_md: "", archived: false })}>
           + Categoria
         </button>
       )}
