@@ -6,9 +6,9 @@ import { supabase, TicketStatus } from "@/lib/supabase";
 /* ---------- etichette interne (l'operatore vede il funnel vero) ---------- */
 export const ADMIN_STATUS_LABEL: Record<TicketStatus, string> = {
   nuovo: "Nuovo",
+  da_rispondere: "Da rispondere",
   in_lavorazione: "In lavorazione",
-  in_attesa_cliente: "Attesa cliente",
-  risolto: "Risolto",
+  in_attesa_dev: "Attesa dev",
   chiuso: "Chiuso",
 };
 

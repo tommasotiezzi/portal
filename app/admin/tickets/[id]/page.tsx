@@ -127,7 +127,7 @@ function TicketDetail() {
       ticket_id: ticketId, author_id: u.user!.id, author_role: "agent", body,
     });
     if (error) { setText(body); setBusy(false); return; }
-    if (resolve) await setStatus("risolto");
+    if (resolve) await setStatus("chiuso");
     await load();
     setBusy(false);
   }
@@ -198,7 +198,7 @@ function TicketDetail() {
             </div>
             <button className="btn ghost slim-btn"
               disabled={busy || !text.trim()} onClick={() => send(true)}>
-              Invia e segna risolto
+              Invia e chiudi (risolto)
             </button>
           </div>
         )}
@@ -241,17 +241,22 @@ function TicketDetail() {
             </select>
           </div>
           <div className="side-actions">
-            {t.status !== "risolto" && t.status !== "chiuso" && (
-              <button className="btn ghost slim-btn" onClick={() => setStatus("risolto")}>
-                Segna risolto
+            {t.status !== "chiuso" && t.status !== "in_attesa_dev" && (
+              <button className="btn ghost slim-btn" onClick={() => setStatus("in_attesa_dev")}>
+                Passa al team dev
+              </button>
+            )}
+            {t.status === "in_attesa_dev" && (
+              <button className="btn ghost slim-btn" onClick={() => setStatus("da_rispondere")}>
+                Riprendi in carico
               </button>
             )}
             {t.status !== "chiuso" && (
               <button className="btn ghost slim-btn" onClick={() => setStatus("chiuso")}>
-                Chiudi
+                Chiudi (risolto)
               </button>
             )}
-            {(t.status === "chiuso" || t.status === "risolto") && (
+            {t.status === "chiuso" && (
               <button className="btn ghost slim-btn" onClick={() => setStatus("in_lavorazione")}>
                 Riapri
               </button>

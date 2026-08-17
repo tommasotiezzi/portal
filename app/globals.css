@@ -785,3 +785,10 @@ body:has(#amia-root) .test-banner { display: none; }
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* nuovi stati del funnel */
+.pill.s-da_rispondere { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.pill.s-in_attesa_dev { background: #8b7cf622; color: #a99cf9; border-color: #8b7cf644; }
+.amia .pill.s-da_rispondere { background: #ff6444; color: #ffffff; border-color: transparent; }
+.amia .pill.s-in_attesa_dev { background: #efeafd; color: #6d5bd0; border-color: #d9cffb; }
+.amia.dark .pill.s-in_attesa_dev { background: #8b7cf622; color: #a99cf9; border-color: #8b7cf644; }

@@ -19,7 +19,7 @@ export function supabase(): SupabaseClient {
 
 // ---------- tipi minimi ----------
 export type TicketStatus =
-  | "nuovo" | "in_lavorazione" | "in_attesa_cliente" | "risolto" | "chiuso";
+  | "nuovo" | "in_lavorazione" | "da_rispondere" | "in_attesa_dev" | "chiuso";
 
 export interface Ticket {
   id: number;
@@ -51,18 +51,18 @@ export interface Category {
 // ---------- stati in linguaggio umano (mai il funnel interno) ----------
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   nuovo: "Richiesta ricevuta",
-  in_lavorazione: "In lavorazione",
-  in_attesa_cliente: "Ti abbiamo risposto",
-  risolto: "Risolto",
-  chiuso: "Chiusa",
+  in_lavorazione: "Ti abbiamo risposto",   // dal punto di vista del cliente
+  da_rispondere: "In lavorazione",         // ha scritto lui, lavoriamo noi
+  in_attesa_dev: "In verifica tecnica",
+  chiuso: "Risolta e chiusa",
 };
 
 /** Lo stato richiede un'azione dell'utente? (pill evidenziata) */
 export const STATUS_NEEDS_USER: Record<TicketStatus, boolean> = {
   nuovo: false,
-  in_lavorazione: false,
-  in_attesa_cliente: true,
-  risolto: false,
+  in_lavorazione: true,    // c'e' una nostra risposta da leggere
+  da_rispondere: false,
+  in_attesa_dev: false,
   chiuso: false,
 };
 

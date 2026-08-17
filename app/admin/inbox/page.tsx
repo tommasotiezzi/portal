@@ -37,7 +37,7 @@ async function purgeOldAttachments() {
 
 /** Peso di urgenza: cosa richiede l'operatore prima. */
 const URGENCY: Record<TicketStatus, number> = {
-  nuovo: 0, in_lavorazione: 1, in_attesa_cliente: 2, risolto: 3, chiuso: 4,
+  nuovo: 0, da_rispondere: 0, in_attesa_dev: 1, in_lavorazione: 2, chiuso: 3,
 };
 
 function Inbox() {
@@ -58,7 +58,7 @@ function Inbox() {
     // manutenzioni senza cron: lock orfani + auto-chiusura 7gg
     await Promise.allSettled([
       supabase().rpc("release_stale_tickets"),
-      supabase().rpc("close_stale_resolved"),
+      supabase().rpc("close_stale_answered"),
       purgeOldAttachments(),                     // retention: allegati chiusi >30gg
     ]);
     const [{ data }, { data: c }, { data: a }] = await Promise.all([
@@ -115,7 +115,7 @@ function Inbox() {
         +new Date(b.updated_at) - +new Date(a.updated_at);
     });
 
-  const needAction = rows.filter((r) => URGENCY[r.status] <= 1).length;
+  const needAction = rows.filter((r) => URGENCY[r.status] === 0).length;
 
   return (
     <>
