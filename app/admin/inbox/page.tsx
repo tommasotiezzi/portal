@@ -111,8 +111,10 @@ function Inbox() {
     .sort((a, b) => {
       if (sort === "aggiornati") return +new Date(b.updated_at) - +new Date(a.updated_at);
       if (sort === "creati") return +new Date(b.created_at) - +new Date(a.created_at);
+      // coda FIFO: a parita' di urgenza, i piu' vecchi in cima
+      // (created_at, cosi' aprire/guardare un ticket non lo rimescola)
       return URGENCY[a.status] - URGENCY[b.status] ||
-        +new Date(b.updated_at) - +new Date(a.updated_at);
+        +new Date(a.created_at) - +new Date(b.created_at);
     });
 
   const needAction = rows.filter((r) => URGENCY[r.status] === 0).length;

@@ -5,7 +5,7 @@ import AdminGuard, { useAdminBase } from "@/components/AdminGuard";
 import { supabase } from "@/lib/supabase";
 
 interface App { id: string; slug: string; name: string; jwt_issuer: string | null; jwt_audiences: string[]; discord_webhook_url: string | null; portal_host: string | null; brand_accent: string; from_email: string | null; logo_url: string | null; }
-interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; archived: boolean; sort_order: number; }
+interface Cat { id: string; app_id: string; slug: string; name: string; faq_md: string | null; info_request_md: string | null; archived: boolean; sort_order: number; default_priority: string | null; }
 
 function Settings() {
   const [apps, setApps] = useState<App[]>([]);
@@ -40,13 +40,14 @@ function Settings() {
   async function saveCat(c: Cat) {
     const { error } = c.id
       ? await supabase().from("categories")
-          .update({ name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null, sort_order: c.sort_order || 100 })
+          .update({ name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null, sort_order: c.sort_order || 100, default_priority: c.default_priority || null })
           .eq("id", c.id)
       : await supabase().from("categories").insert({
           app_id: appId,
           slug: c.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40),
           name: c.name, faq_md: c.faq_md || null, info_request_md: c.info_request_md || null,
           archived: false, sort_order: c.sort_order || 100,
+          default_priority: c.default_priority || null,
         });
     if (error) { flash("Errore: " + error.message); return; }
     setEditing(null); flash("Salvato.");
@@ -139,6 +140,7 @@ function Settings() {
                 <b>{c.name}</b> <span className="sub" style={{ fontSize: 12 }}>#{c.sort_order}</span>{c.archived && <span className="pill" style={{ marginLeft: 8 }}>archiviata</span>}
                 <p className="sub" style={{ margin: "4px 0 0" }}>
                   {c.faq_md ? "FAQ ✓" : "FAQ —"} · {c.info_request_md ? "checklist ✓" : "checklist —"}
+                  {c.default_priority ? ` · priorità ${c.default_priority}` : ""}
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8, flex: "none" }}>
@@ -162,7 +164,7 @@ function Settings() {
       )}
       {!editing && (
         <button className="btn ghost slim-btn"
-          onClick={() => setEditing({ id: "", app_id: appId, slug: "", name: "", faq_md: "", info_request_md: "", archived: false, sort_order: 100 })}>
+          onClick={() => setEditing({ id: "", app_id: appId, slug: "", name: "", faq_md: "", info_request_md: "", archived: false, sort_order: 100, default_priority: null })}>
           + Categoria
         </button>
       )}
@@ -181,6 +183,14 @@ function CatForm({ cat, onChange, onSave, onCancel }: {
         <input className="field slim" style={{ width: 90 }} type="number" title="Ordine nel funnel (10, 20, 30…)"
           placeholder="Ordine" value={cat.sort_order || ""}
           onChange={(e) => onChange({ ...cat, sort_order: Number(e.target.value) || 100 })} />
+        <select className="field slim" style={{ width: 130 }} title="Priorità di default dei ticket di questa categoria"
+          value={cat.default_priority ?? ""}
+          onChange={(e) => onChange({ ...cat, default_priority: e.target.value || null })}>
+          <option value="">prio: media</option>
+          <option value="bassa">prio: bassa</option>
+          <option value="alta">prio: alta</option>
+          <option value="critica">prio: critica</option>
+        </select>
       </div>
       <textarea className="field" rows={3}
         placeholder="Risposta FAQ del bot (markdown: **grassetto**) — vuoto = il bot non prova a risolvere"
