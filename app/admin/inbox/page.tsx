@@ -49,9 +49,9 @@ function Inbox() {
   const [filterStatus, setFilterStatus] = useState<"" | TicketStatus>("");
   const [filterCat, setFilterCat] = useState("");
   const [filterApp, setFilterApp] = useState("");
-  const [cats, setCats] = useState<{ id: string; name: string }[]>([]);
+  const [cats, setCats] = useState<{ id: string; name: string; app_id: string }[]>([]);
   const [appList, setAppList] = useState<{ id: string; name: string }[]>([]);
-  const [sort, setSort] = useState<"urgenza" | "aggiornati" | "creati">("urgenza");
+  const [sort, setSort] = useState<"coda" | "urgenza" | "aggiornati">("coda");
   const [q, setQ] = useState("");
 
   const load = useCallback(async () => {
@@ -66,11 +66,11 @@ function Inbox() {
         .from("tickets")
         .select("id, title, status, priority, created_at, updated_at, locked_by, app_id, category_id, categories(name), apps(name, slug), profiles!tickets_user_id_fkey(email)")
         .order("updated_at", { ascending: false }),
-      supabase().from("categories").select("id, name").order("name"),
+      supabase().from("categories").select("id, name, app_id").order("name"),
       supabase().from("apps").select("id, name").order("name"),
     ]);
     setRows((data as unknown as Row[]) ?? []);
-    setCats((c as { id: string; name: string }[]) ?? []);
+    setCats((c as { id: string; name: string; app_id: string }[]) ?? []);
     setAppList((a as { id: string; name: string }[]) ?? []);
   }, []);
 
@@ -110,11 +110,12 @@ function Inbox() {
         : true)
     .sort((a, b) => {
       if (sort === "aggiornati") return +new Date(b.updated_at) - +new Date(a.updated_at);
-      if (sort === "creati") return +new Date(b.created_at) - +new Date(a.created_at);
-      // coda FIFO: a parita' di urgenza, i piu' vecchi in cima
-      // (created_at, cosi' aprire/guardare un ticket non lo rimescola)
-      return URGENCY[a.status] - URGENCY[b.status] ||
-        +new Date(a.created_at) - +new Date(b.created_at);
+      if (sort === "urgenza")
+        return URGENCY[a.status] - URGENCY[b.status] ||
+          +new Date(a.created_at) - +new Date(b.created_at);
+      // default "coda": pura data di apertura, i piu' vecchi in cima
+      // (aprire/guardare un ticket non lo rimescola mai)
+      return +new Date(a.created_at) - +new Date(b.created_at);
     });
 
   const needAction = rows.filter((r) => URGENCY[r.status] === 0).length;
@@ -136,20 +137,22 @@ function Inbox() {
           ))}
         </select>
         <select className="field slim" value={filterApp}
-          onChange={(e) => setFilterApp(e.target.value)}>
+          onChange={(e) => { setFilterApp(e.target.value); setFilterCat(""); }}>
           <option value="">Tutte le app</option>
           {appList.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
         <select className="field slim" value={filterCat}
           onChange={(e) => setFilterCat(e.target.value)}>
           <option value="">Tutte le categorie</option>
-          {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {cats
+            .filter((c) => !filterApp || c.app_id === filterApp)
+            .map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select className="field slim" value={sort}
           onChange={(e) => setSort(e.target.value as typeof sort)}>
+          <option value="coda">Ordina: apertura (vecchi prima)</option>
           <option value="urgenza">Ordina: urgenza</option>
           <option value="aggiornati">Ordina: aggiornati di recente</option>
-          <option value="creati">Ordina: creati di recente</option>
         </select>
         <label className="sub check" style={{ margin: 0 }}>
           <input type="checkbox" checked={showClosed}
