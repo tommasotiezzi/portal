@@ -46,6 +46,8 @@ function Inbox() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [me, setMe] = useState<string>("");
   const [showClosed, setShowClosed] = useState(false);
+  const [hideDev, setHideDev] = useState(false);
+  const [hideLav, setHideLav] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"" | TicketStatus>("");
   const [filterCat, setFilterCat] = useState("");
   const [filterApp, setFilterApp] = useState("");
@@ -73,6 +75,32 @@ function Inbox() {
     setCats((c as { id: string; name: string; app_id: string }[]) ?? []);
     setAppList((a as { id: string; name: string }[]) ?? []);
   }, []);
+
+  // ripristina i filtri salvati (tornando da un ticket non si perdono)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("inbox-filters");
+      if (raw) {
+        const f = JSON.parse(raw);
+        if (f.status !== undefined) setFilterStatus(f.status);
+        if (f.cat !== undefined) setFilterCat(f.cat);
+        if (f.app !== undefined) setFilterApp(f.app);
+        if (f.sort !== undefined) setSort(f.sort);
+        if (f.showClosed !== undefined) setShowClosed(f.showClosed);
+        if (f.hideDev !== undefined) setHideDev(f.hideDev);
+        if (f.hideLav !== undefined) setHideLav(f.hideLav);
+      }
+    } catch { /* storage assente: default */ }
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("inbox-filters", JSON.stringify({
+        status: filterStatus, cat: filterCat, app: filterApp,
+        sort, showClosed, hideDev, hideLav,
+      }));
+    } catch { /* ok */ }
+  }, [filterStatus, filterCat, filterApp, sort, showClosed, hideDev, hideLav]);
 
   useEffect(() => {
     supabase().auth.getUser().then(({ data }) => setMe(data.user?.id ?? ""));
@@ -102,6 +130,8 @@ function Inbox() {
     .filter((r) => (filterStatus ? r.status === filterStatus : true))
     .filter((r) => (filterCat ? r.category_id === filterCat : true))
     .filter((r) => (filterApp ? r.app_id === filterApp : true))
+    .filter((r) => !(hideDev && r.status === "in_attesa_dev"))
+    .filter((r) => !(hideLav && r.status === "in_lavorazione"))
     .filter((r) =>
       needle
         ? r.title.toLowerCase().includes(needle) ||
@@ -157,6 +187,14 @@ function Inbox() {
         <label className="sub check" style={{ margin: 0 }}>
           <input type="checkbox" checked={showClosed}
             onChange={(e) => setShowClosed(e.target.checked)} /> mostra chiusi
+        </label>
+        <label className="sub check" style={{ margin: 0 }}>
+          <input type="checkbox" checked={hideDev}
+            onChange={(e) => setHideDev(e.target.checked)} /> nascondi attesa dev
+        </label>
+        <label className="sub check" style={{ margin: 0 }}>
+          <input type="checkbox" checked={hideLav}
+            onChange={(e) => setHideLav(e.target.checked)} /> nascondi in lavorazione
         </label>
       </div>
 

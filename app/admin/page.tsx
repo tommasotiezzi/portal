@@ -1,13 +1,20 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAdminBase } from "@/components/AdminGuard";
 
-/** Login del backoffice: email + password (account creati a mano). */
-export default function AdminLogin() {
+/** Login del backoffice: email + password (account creati a mano).
+ *  ?next=/percorso -> dopo il login si atterra li' (deep link embed). */
+function AdminLoginInner() {
   const router = useRouter();
   const base = useAdminBase();
+  const params = useSearchParams();
+  // solo path interni: niente open redirect
+  const rawNext = params.get("next") ?? "";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//")
+    ? rawNext
+    : `${base}/inbox`;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,9 +25,9 @@ export default function AdminLogin() {
       if (!data.session) return;
       const { data: p } = await supabase()
         .from("profiles").select("role").eq("id", data.session.user.id).single();
-      if (p?.role === "agent" || p?.role === "admin") router.replace(`${base}/inbox`);
+      if (p?.role === "agent" || p?.role === "admin") router.replace(next);
     });
-  }, [router, base]);
+  }, [router, base, next]);
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +41,7 @@ export default function AdminLogin() {
     const { data: p } = await supabase()
       .from("profiles").select("role").eq("id", data.session.user.id).single();
     if (p?.role === "agent" || p?.role === "admin") {
-      router.replace(`${base}/inbox`);
+      router.replace(next);
     } else {
       await supabase().auth.signOut();
       setError("Credenziali non valide.");   // volutamente generico
@@ -66,5 +73,13 @@ export default function AdminLogin() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function AdminLogin() {
+  return (
+    <Suspense fallback={<main className="shell"><div className="center sub">Un attimo…</div></main>}>
+      <AdminLoginInner />
+    </Suspense>
   );
 }

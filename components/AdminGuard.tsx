@@ -54,7 +54,10 @@ export default function AdminGuard({
     (async () => {
       const { data } = await supabase().auth.getSession();
       if (!data.session) {
-        router.replace(base); // pagina di login del backoffice
+        // login, portandosi dietro la destinazione (deep link dagli embed)
+        const here = window.location.pathname;
+        const next = here && here !== base ? `?next=${encodeURIComponent(here)}` : "";
+        router.replace(`${base}${next}`);
         return;
       }
       const { data: profile } = await supabase()
